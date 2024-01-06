@@ -43,20 +43,18 @@ def parse_args():
     parser = argparse.ArgumentParser(description="Interact with fwupd daemon")
     parser.add_argument("exe", nargs="?", help="exe file")
     parser.add_argument("deviceid", nargs="?", help="DeviceID to operate on(optional)")
-    args = parser.parse_args()
-    return args
+    return parser.parse_args()
 
 
 def generate_cab(infile, directory, guid, version):
     output = os.path.join(directory, "firmware.bin")
-    ret = add_header(infile, output, guid)
-    if ret:
+    if ret := add_header(infile, output, guid):
         sys.exit(ret)
     variables = Variables(guid, version)
     make_firmware_metainfo(variables, directory)
     create_firmware_cab(variables, directory)
     cab = os.path.join(directory, "firmware.cab")
-    print("Generated CAB file %s" % cab)
+    print(f"Generated CAB file {cab}")
     return cab
 
 
@@ -74,8 +72,8 @@ def find_uefi_device(client, deviceid):
         if not item.has_flag(1 << 8):
             continue
         # return the first hit for UEFI plugin
-        if item.get_plugin() == "uefi" or item.get_plugin() == "uefi_capsule":
-            print("Installing to %s" % item.get_name())
+        if item.get_plugin() in ["uefi", "uefi_capsule"]:
+            print(f"Installing to {item.get_name()}")
             return item.get_guid_default(), item.get_id(), item.get_version()
     print("Couldn't find any UEFI devices")
     sys.exit(1)
@@ -84,11 +82,7 @@ def find_uefi_device(client, deviceid):
 def set_conf_only_trusted(client, setval):
     prop = "OnlyTrusted"
     current_val = get_daemon_property(prop)
-    if current_val:
-        pass
-    elif setval:
-        pass
-    else:
+    if not current_val and not setval:
         return False
     modify_config(client, prop, str(setval).lower())
     return get_daemon_property(prop) == setval

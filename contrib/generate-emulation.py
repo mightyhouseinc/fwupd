@@ -28,28 +28,29 @@ def _minimize_json(json_str: str) -> str:
     new_bios_settings: List[Dict[str, Any]] = []
     try:
         for attr in nodes["SecurityAttributes"]:
-            new_attr: Dict[str, Any] = {}
-            for key in attr:
-                if key in ["AppstreamId", "HsiResult", "Flags", "Plugin"]:
-                    new_attr[key] = attr[key]
+            new_attr: Dict[str, Any] = {
+                key: attr[key]
+                for key in attr
+                if key in ["AppstreamId", "HsiResult", "Flags", "Plugin"]
+            }
             new_attrs.append(new_attr)
     except KeyError:
         pass
     try:
         for device in nodes["Devices"]:
-            new_device: Dict[str, Any] = {}
-            for key in device:
-                if key not in ["Created", "Modified", "Releases", "Plugin"]:
-                    new_device[key] = device[key]
+            new_device: Dict[str, Any] = {
+                key: device[key]
+                for key in device
+                if key not in ["Created", "Modified", "Releases", "Plugin"]
+            }
             new_devices.append(new_device)
     except KeyError:
         pass
     try:
         for device in nodes["BiosSettings"]:
-            new_attr: Dict[str, Any] = {}
-            for key in device:
-                if key not in ["Filename"]:
-                    new_attr[key] = device[key]
+            new_attr: Dict[str, Any] = {
+                key: device[key] for key in device if key not in ["Filename"]
+            }
             new_bios_settings.append(new_attr)
     except KeyError:
         pass
@@ -75,7 +76,7 @@ def _get_host_devices_and_attrs() -> str:
     try:
         devices = client.get_devices()
     except GLib.GError as e:
-        print("ignoring {}".format(e))
+        print(f"ignoring {e}")
     else:
         builder.set_member_name("Devices")
         builder.begin_array()
@@ -89,7 +90,7 @@ def _get_host_devices_and_attrs() -> str:
     try:
         attrs = client.get_host_security_attrs()
     except GLib.GError as e:
-        print("ignoring {}".format(e))
+        print(f"ignoring {e}")
     else:
         builder.set_member_name("SecurityAttributes")
         builder.begin_array()
@@ -103,7 +104,7 @@ def _get_host_devices_and_attrs() -> str:
     try:
         attrs = client.get_bios_settings()
     except GLib.GError as e:
-        print("ignoring {}".format(e))
+        print(f"ignoring {e}")
     else:
         builder.set_member_name("BiosSettings")
         builder.begin_array()

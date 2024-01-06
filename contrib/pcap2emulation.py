@@ -42,9 +42,7 @@ CCID_RDR_TO_PC_ESCAPE = 0x83
 
 
 def get_int(data: str) -> int:
-    if data[:2] == "0x":
-        return int(data, 16)
-    return int(data)
+    return int(data, 16) if data.startswith("0x") else int(data)
 
 
 def add_bytes(array: bytearray, string: str, size: int) -> None:
@@ -67,7 +65,7 @@ class Pcap2Emulation:
         for i in range(len(device_ids)):
             device_id = device_ids[i].split(":")
             if len(device_id) > 2:
-                sys.stderr.write("Malformed device ID: {}\n\n".format(device_ids[i]))
+                sys.stderr.write(f"Malformed device ID: {device_ids[i]}\n\n")
                 exit(1)
             if len(device_id) == 2 and len(device_id[1]) == 0:
                 del device_id[1]
@@ -83,15 +81,12 @@ class Pcap2Emulation:
         if not self.phases:
             return
 
-        print("Found {} phases:".format(len(self.phases)))
+        print(f"Found {len(self.phases)} phases:")
         phase = 0
 
-        if path.endswith(".zip"):
-            emulation_file = path
-        else:
-            emulation_file = path + ".zip"
+        emulation_file = path if path.endswith(".zip") else f"{path}.zip"
         with ZipFile(emulation_file, "w", compression=ZIP_DEFLATED) as write_file:
-            print("- phase {} as setup.json".format(phase))
+            print(f"- phase {phase} as setup.json")
             json_string = json.dumps(
                 self.phases[phase], indent=2, separators=(",", " : ")
             )
@@ -99,24 +94,24 @@ class Pcap2Emulation:
             phase += 1
 
             if len(self.phases) > 2:
-                print("- phase {} as install.json".format(phase))
+                print(f"- phase {phase} as install.json")
                 json_string = json.dumps(
                     self.phases[phase], indent=2, separators=(",", " : ")
                 )
                 write_file.writestr("install.json", json_string)
                 phase += 1
 
-            print("- phase {} as reload.json".format(phase))
+            print(f"- phase {phase} as reload.json")
             json_string = json.dumps(
                 self.phases[phase], indent=2, separators=(",", " : ")
             )
             write_file.writestr("reload.json", json_string)
             phase += 1
 
-        print("Emulation file saved to " + emulation_file)
+        print(f"Emulation file saved to {emulation_file}")
 
         while phase < len(self.phases):
-            phase_path = "{}-{}.json".format(path, phase)
+            phase_path = f"{path}-{phase}.json"
             with open(phase_path, "w") as dump_file:
                 json.dump(
                     self.phases[phase],
@@ -124,7 +119,7 @@ class Pcap2Emulation:
                     indent=2,
                     separators=(",", " : "),
                 )
-                print("- unused phase {} saved to {}".format(phase, phase_path))
+                print(f"- unused phase {phase} saved to {phase_path}")
             phase += 1
 
     def _run_tshark(self, file: str, tshark_filter: str) -> Any:
@@ -136,13 +131,10 @@ class Pcap2Emulation:
     def _get_usb_addrs(self, file: str) -> Tuple[str, List[str]]:
         tshark_filter = ""
         for i in range(len(self.device_ids)):
-            if len(tshark_filter) == 0:
-                tshark_filter += "("
-            else:
-                tshark_filter += " or ("
-            tshark_filter += "usb.idVendor == 0x" + self.device_ids[i][0]
+            tshark_filter += "(" if len(tshark_filter) == 0 else " or ("
+            tshark_filter += f"usb.idVendor == 0x{self.device_ids[i][0]}"
             if len(self.device_ids[i]) == 2 and len(self.device_ids[i][1]) > 0:
-                tshark_filter += " and usb.idProduct == 0x" + self.device_ids[i][1]
+                tshark_filter += f" and usb.idProduct == 0x{self.device_ids[i][1]}"
             tshark_filter += ")"
 
         usb_bus = ""
@@ -155,9 +147,7 @@ class Pcap2Emulation:
                     usb_bus = pcap_data["layers"]["usb"]["usb_usb_bus_id"]
                 elif usb_bus != pcap_data["layers"]["usb"]["usb_usb_bus_id"]:
                     print(
-                        "* Warning: Found different USB Bus ID: expected {}, found {}".format(
-                            usb_bus, pcap_data["layers"]["usb"]["usb_usb_bus_id"]
-                        )
+                        f'* Warning: Found different USB Bus ID: expected {usb_bus}, found {pcap_data["layers"]["usb"]["usb_usb_bus_id"]}'
                     )
                 addr = pcap_data["layers"]["usb"]["usb_usb_device_address"]
                 if addr not in usb_addrs:
@@ -165,28 +155,28 @@ class Pcap2Emulation:
         return usb_bus, usb_addrs
 
     def _get_interrupt_event(self, layers: Dict[str, Any]) -> Dict[str, str]:
-        if "usb_usb_capdata" in layers:
-            captured_data = str(
-                base64.b64encode(
-                    bytes.fromhex(layers["usb_usb_capdata"].replace(":", ""))
-                ),
-                "utf-8",
-            )
-            s = "InterruptTransfer:Endpoint=0x{:02x}".format(
-                get_int(layers["usb"]["usb_usb_endpoint_address"])
-            )
-            if layers["usb"]["usb_usb_endpoint_address_direction"] == "1":
-                if hasattr(self, "previous_data") and self.previous_data:
-                    s += ",Data={}".format(self.previous_data)
-                    self.previous_data = None
-                else:
-                    s += ",Data="
+        if "usb_usb_capdata" not in layers:
+            return {}
+        captured_data = str(
+            base64.b64encode(
+                bytes.fromhex(layers["usb_usb_capdata"].replace(":", ""))
+            ),
+            "utf-8",
+        )
+        s = "InterruptTransfer:Endpoint=0x{:02x}".format(
+            get_int(layers["usb"]["usb_usb_endpoint_address"])
+        )
+        if layers["usb"]["usb_usb_endpoint_address_direction"] == "1":
+            if hasattr(self, "previous_data") and self.previous_data:
+                s += f",Data={self.previous_data}"
+                self.previous_data = None
             else:
-                self.previous_data = captured_data
-                s += ",Data={}".format(captured_data)
-            s += ",Length=0x{:x}".format(int(layers["usb"]["usb_usb_data_len"]))
-            return {"Id": s, "Data": captured_data}
-        return {}
+                s += ",Data="
+        else:
+            self.previous_data = captured_data
+            s += f",Data={captured_data}"
+        s += ",Length=0x{:x}".format(int(layers["usb"]["usb_usb_data_len"]))
+        return {"Id": s, "Data": captured_data}
 
     def _get_bulk_event(self, layers: Dict[str, Any]) -> Dict[str, str]:
         captured_data = None
@@ -210,10 +200,10 @@ class Pcap2Emulation:
                 add_bytes(
                     ccid, layers["usbccid"]["usbccid_usbccid_hf_ccid_Reserved"], 2
                 )
-            elif (
-                message_type == CCID_PC_TO_RDR_ICC_POWER_OFF
-                or message_type == CCID_PC_TO_RDR_GET_SLOT_STATUS
-            ):
+            elif message_type in [
+                CCID_PC_TO_RDR_ICC_POWER_OFF,
+                CCID_PC_TO_RDR_GET_SLOT_STATUS,
+            ]:
                 add_bytes(
                     ccid, layers["usbccid"]["usbccid_usbccid_hf_ccid_Reserved"], 3
                 )
@@ -282,10 +272,10 @@ class Pcap2Emulation:
                     base64.b64encode(bytes.fromhex("00" * length)),
                     "utf-8",
                 )
-                s += ",Data={}".format(data)
+                s += f",Data={data}"
             else:
                 length = int(layers["usb"]["usb_usb_data_len"])
-                s += ",Data={}".format(captured_data)
+                s += f",Data={captured_data}"
             s += ",Length=0x{:x}".format(length)
             return {"Id": s, "Data": captured_data}
         elif layers["usb"]["usb_usb_endpoint_address_direction"] == "1":
@@ -324,7 +314,7 @@ class Pcap2Emulation:
             else:
                 val = get_int(layers[key][self.interface_index])
 
-            if not key in layers:
+            if key not in layers:
                 continue
 
             interface[table[key]] = val

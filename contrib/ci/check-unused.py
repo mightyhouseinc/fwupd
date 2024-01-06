@@ -33,7 +33,7 @@ def test_files() -> int:
                 if line.endswith(".o:"):
                     continue
                 t = line[17:18]
-                if t == "b" or t == "t" or t == "r" or t == "d" or t == "a":
+                if t in ["b", "t", "r", "d", "a"]:
                     continue
                 symb = line[19:]
                 data.append((t, symb))

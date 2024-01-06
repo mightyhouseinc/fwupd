@@ -24,12 +24,7 @@ def _tokenize(line: str) -> List[str]:
     line = line.replace(")", "|")
     line = line.replace("(", "|")
 
-    # return empty tokens
-    tokens = []
-    for token in line.rsplit("|"):
-        if token:
-            tokens.append(token)
-    return tokens
+    return [token for token in line.rsplit("|") if token]
 
 
 class ReturnValidator:
@@ -60,9 +55,7 @@ class ReturnValidator:
             return "G_MAXUINT8"
         if self._value in ["G_SOURCE_REMOVE"]:
             return "FALSE"
-        if self._value in ["G_SOURCE_CONTINUE"]:
-            return "TRUE"
-        return self._value
+        return "TRUE" if self._value in ["G_SOURCE_CONTINUE"] else self._value
 
     def _test_rvif(self) -> None:
 
@@ -76,9 +69,7 @@ class ReturnValidator:
         # is invalid
         if self._rvif and self._value_relaxed not in self._rvif:
             self.warnings.append(
-                "{} line {} got {}, expected {}".format(
-                    self._fn, self._line_num, self._value, ", ".join(self._rvif)
-                )
+                f'{self._fn} line {self._line_num} got {self._value}, expected {", ".join(self._rvif)}'
             )
 
     def _test_return(self) -> None:
@@ -89,9 +80,7 @@ class ReturnValidator:
         # is invalid
         if self._nret and self._value_relaxed in self._nret:
             self.warnings.append(
-                "{} line {} got {}, which is not valid".format(
-                    self._fn, self._line_num, self._value
-                )
+                f"{self._fn} line {self._line_num} got {self._value}, which is not valid"
             )
 
     def parse(self, fn: str) -> None:
@@ -101,7 +90,7 @@ class ReturnValidator:
             self._rvif = None
             self._nret = None
             self._line_num = 0
-            for line in f.readlines():
+            for line in f:
                 self._line_num += 1
                 line = line.rstrip()
                 if not line:

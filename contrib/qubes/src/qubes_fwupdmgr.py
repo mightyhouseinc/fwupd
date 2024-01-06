@@ -120,9 +120,7 @@ class QubesFwupdmgr(FwupdHeads, FwupdUpdate, FwupdReceiveUpdates):
             # skip unsupported keyring kind
             if remote.get("KeyringKind") not in ("jcat",):
                 print(
-                    "Skipping remote '{}' due to unsupported keyring type '{}'".format(
-                        name, remote.get("KeyringKind")
-                    )
+                    f"""Skipping remote '{name}' due to unsupported keyring type '{remote.get("KeyringKind")}'"""
                 )
             assert "MetadataUri" in remote
             remotes[name] = remote["MetadataUri"]
@@ -145,12 +143,9 @@ class QubesFwupdmgr(FwupdHeads, FwupdUpdate, FwupdReceiveUpdates):
                 raise Exception("missing metadata URL")
         metadata_name = os.path.basename(metadata_url)
         self.metadata_file = os.path.join(FWUPD_DOM0_METADATA_DIR, metadata_name)
-        self.metadata_file_jcat = self.metadata_file + ".jcat"
+        self.metadata_file_jcat = f"{self.metadata_file}.jcat"
         if not remote_name:
-            if "testing" in metadata_url:
-                remote_name = "lvfs-testing"
-            else:
-                remote_name = "lvfs"
+            remote_name = "lvfs-testing" if "testing" in metadata_url else "lvfs"
         self._download_metadata(whonix=whonix, metadata_url=metadata_url)
         cmd_refresh = [
             FWUPDMGR,
@@ -164,7 +159,7 @@ class QubesFwupdmgr(FwupdHeads, FwupdUpdate, FwupdReceiveUpdates):
         print(output)
         if p.returncode != 0:
             raise Exception("fwupd-qubes: Refresh failed")
-        if not output != "Successfully refreshed metadata manually":
+        if output == "Successfully refreshed metadata manually":
             raise Exception("Manual metadata refresh failed!!!")
 
     def refresh_metadata_all(self, whonix=False):
@@ -177,14 +172,14 @@ class QubesFwupdmgr(FwupdHeads, FwupdUpdate, FwupdReceiveUpdates):
             try:
                 self.refresh_metadata(whonix=whonix, remote_name=name, metadata_url=url)
             except Exception as e:
-                print("Failed to refresh remote '{}': {}".format(name, e))
+                print(f"Failed to refresh remote '{name}': {e}")
 
     def _get_dom0_updates(self):
         """Gathers information about available updates."""
         cmd_get_dom0_updates = [FWUPDMGR, "--json", "get-updates"]
         p = subprocess.Popen(cmd_get_dom0_updates, stdout=subprocess.PIPE)
         self.dom0_updates_info = p.communicate()[0].decode()
-        if p.returncode != 0 and p.returncode != 2:
+        if p.returncode not in [0, 2]:
             raise Exception("fwupd-qubes: Getting available updates failed")
 
     def _parse_dom0_updates_info(self, updates_info):
@@ -233,7 +228,6 @@ class QubesFwupdmgr(FwupdHeads, FwupdUpdate, FwupdReceiveUpdates):
         updates_dict - list of updates for specified device
         downgrade -- downgrade flag
         """
-        decorator = "======================================================"
         if len(updates_list) == 0:
             print("No updates available.")
             return -EXIT_CODES["NOTHING_TO_DO"]
@@ -247,19 +241,19 @@ class QubesFwupdmgr(FwupdHeads, FwupdUpdate, FwupdReceiveUpdates):
             try:
                 print("If you want to abandon process press 'N'.")
                 choice = input("Otherwise choose a device number: ")
-                if choice == "N" or choice == "n":
+                if choice in ["N", "n"]:
                     return -EXIT_CODES["NOTHING_TO_DO"]
                 device_num = int(choice) - 1
-                if 0 <= device_num < len(updates_list):
-                    if not downgrade:
-                        return device_num
-                    break
-                else:
+                if not 0 <= device_num < len(updates_list):
                     raise ValueError()
+                if not downgrade:
+                    return device_num
+                break
             except ValueError:
                 print("Invalid choice.")
 
         if downgrade:
+            decorator = "======================================================"
             while True:
                 try:
                     releases = updates_list[device_num]["Releases"]
@@ -278,7 +272,7 @@ class QubesFwupdmgr(FwupdHeads, FwupdUpdate, FwupdReceiveUpdates):
                         print(f"   Description:{description}")
                     print("If you want to abandon downgrade process press N.")
                     choice = input("Otherwise choose downgrade number: ")
-                    if choice == "N" or choice == "n":
+                    if choice in ["N", "n"]:
                         return -EXIT_CODES["NOTHING_TO_DO"]
                     downgrade_num = int(choice) - 1
                     if 0 <= downgrade_num < len(releases):
@@ -472,7 +466,7 @@ class QubesFwupdmgr(FwupdHeads, FwupdUpdate, FwupdReceiveUpdates):
         print(2 * decorator)
         for updev_key in updev_dict:
             style = "\t" * level
-            output = style + _tabs(updev_key + ":")
+            output = style + _tabs(f"{updev_key}:")
             if len(updev_key) > 12:
                 continue
             if updev_key == "Icons":
@@ -611,9 +605,9 @@ class QubesFwupdmgr(FwupdHeads, FwupdUpdate, FwupdReceiveUpdates):
                 try:
                     print("An update requires a reboot to complete.")
                     choice = input("Do you want to restart now? (Y|N)\n")
-                    if choice == "N" or choice == "n":
+                    if choice in ["N", "n"]:
                         return EXIT_CODES["SUCCESS"]
-                    elif choice == "Y" or choice == "y":
+                    elif choice in ["Y", "y"]:
                         print("Rebooting...")
                         os.system("reboot")
                     else:
@@ -629,9 +623,7 @@ class QubesFwupdmgr(FwupdHeads, FwupdUpdate, FwupdReceiveUpdates):
             create_dirs(FWUPD_DOM0_DIR)
         if os.path.exists(FWUPD_DOM0_METADATA_DIR):
             shutil.rmtree(FWUPD_DOM0_METADATA_DIR)
-            create_dirs(FWUPD_DOM0_METADATA_DIR)
-        else:
-            create_dirs(FWUPD_DOM0_METADATA_DIR)
+        create_dirs(FWUPD_DOM0_METADATA_DIR)
         if not os.path.exists(FWUPD_DOM0_UPDATES_DIR):
             create_dirs(FWUPD_DOM0_UPDATES_DIR)
 
@@ -663,7 +655,7 @@ def main():
                 exit(1)
         if "--device=" in arg:
             device_override = arg.replace("--device=", "")
-        if "--whonix" == arg:
+        if arg == "--whonix":
             whonix = True
 
     q.validate_dom0_dirs()

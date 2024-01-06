@@ -50,12 +50,9 @@ if __name__ == "__main__":
     args = parse_args()
     base = os.getenv("GITHUB_BASE_REF")
     if base:
-        base = "origin/%s" % base
+        base = f"origin/{base}"
     else:
-        if args.commit:
-            base = args.commit[0]
-        else:
-            base = "HEAD"
+        base = args.commit[0] if args.commit else "HEAD"
     cmd = ["git", "describe", base]
     if args.debug:
         print(cmd)
@@ -64,7 +61,7 @@ if __name__ == "__main__":
         if args.debug:
             print(ret.stderr)
         base = "HEAD"
-    print("Reformatting code against %s" % base)
+    print(f"Reformatting code against {base}")
     formatter = select_clang_version(CLANG_DIFF_FORMATTERS)
     cmd = ["git", "diff", "-U0", base]
     if args.debug:

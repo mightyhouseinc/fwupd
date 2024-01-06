@@ -47,8 +47,7 @@ def parse_args():
         help="CAB file or directory containing CAB files to automatically install",
     )
     parser.add_argument("target", help="target file to create")
-    args = parser.parse_args()
-    return args
+    return parser.parse_args()
 
 
 def bytes_slicer(length, source):
@@ -150,7 +149,7 @@ if __name__ == "__main__":
     with tempfile.TemporaryDirectory(prefix="fwupd") as directory:
         if local:
             if not os.path.exists(local):
-                error("%s doesn't exist" % local)
+                error(f"{local} doesn't exist")
             if not os.path.isdir(local):
                 shutil.copy(local, directory)
             else:

@@ -40,7 +40,7 @@ def add_header(infile, outfile, gd, fl=None):
             guid_mixed = uuid.UUID(bytes_le=hdr[0])
             hdrsz_old = hdr[1]
             flags = hdr[2]
-            print("GUID:      %s" % guid_mixed)
+            print(f"GUID:      {guid_mixed}")
             print("HdrSz:     0x%04x" % hdrsz_old)
             print("Flags:     0x%04x" % flags)
             print("PayloadSz: 0x%04x" % imgsz)
@@ -63,8 +63,8 @@ def add_header(infile, outfile, gd, fl=None):
     with open(outfile, "wb") as f:
         f.write(hdr)
         f.write(bin_data)
-    print("Wrote capsule %s" % outfile)
-    print("GUID:      %s" % guid)
+    print(f"Wrote capsule {outfile}")
+    print(f"GUID:      {guid}")
     print("HdrSz:     0x%04x" % hdrsz)
     print("Flags:     0x%04x" % flags)
     print("PayloadSz: 0x%04x" % imgsz)

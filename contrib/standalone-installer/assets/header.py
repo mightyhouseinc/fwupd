@@ -40,8 +40,7 @@ def parse_args():
     parser.add_argument(
         "command", choices=["install", "extract"], help="Command to run"
     )
-    args = parser.parse_args()
-    return args
+    return parser.parse_args()
 
 
 def error(msg):
@@ -92,7 +91,7 @@ def copy_cabs(source, target):
 
 def install_snap(directory, verbose, allow_reinstall, allow_older, uninstall):
     app = "fwupd"
-    common = "/root/snap/%s/common" % app
+    common = f"/root/snap/{app}/common"
 
     # check if snap is installed
     with open(os.devnull, "w") as devnull:
@@ -125,7 +124,7 @@ def install_snap(directory, verbose, allow_reinstall, allow_older, uninstall):
 
     # run the snap
     for cab in cabs:
-        cmd = ["%s.fwupdmgr" % app, "install", cab]
+        cmd = [f"{app}.fwupdmgr", "install", cab]
         if allow_reinstall:
             cmd += ["--allow-reinstall"]
         if allow_older:
@@ -149,23 +148,19 @@ def install_snap(directory, verbose, allow_reinstall, allow_older, uninstall):
 
 def install_flatpak(directory, verbose, allow_reinstall, allow_older, uninstall):
     app = "org.freedesktop.fwupd"
-    common = "%s/.var/app/%s" % (os.getenv("HOME"), app)
+    common = f'{os.getenv("HOME")}/.var/app/{app}'
 
     with open(os.devnull, "w") as devnull:
-        if not verbose:
-            output = devnull
-        else:
-            output = None
+        output = devnull if not verbose else None
         # look for dependencies
         dep = "org.gnome.Platform/x86_64/3.30"
-        repo = "flathub"
-        repo_url = "https://flathub.org/repo/flathub.flatpakrepo"
         cmd = ["flatpak", "info", dep]
         if verbose:
             print(cmd)
         ret = subprocess.run(cmd, stdout=output, stderr=output)
         # not installed
         if ret.returncode != 0:
+            repo = "flathub"
             # look for remotes
             cmd = ["flatpak", "remote-info", repo, dep]
             if verbose:
@@ -173,6 +168,7 @@ def install_flatpak(directory, verbose, allow_reinstall, allow_older, uninstall)
             ret = subprocess.run(cmd, stdout=output, stderr=output)
             # not enabled, enable it
             if ret.returncode != 0:
+                repo_url = "https://flathub.org/repo/flathub.flatpakrepo"
                 cmd = ["flatpak", "remote-add", repo, repo_url]
                 if verbose:
                     print(cmd)
@@ -243,17 +239,15 @@ def use_included_version(minimum_version):
     if minimum_version:
         if minimum_version > version:
             print(
-                "fwupd %s is already installed but this package requires %s"
-                % (version.version, minimum_version)
+                f"fwupd {version.version} is already installed but this package requires {minimum_version}"
             )
         else:
             print(
-                "Using existing fwupd version %s already installed on system."
-                % version.version
+                f"Using existing fwupd version {version.version} already installed on system."
             )
             return False
     else:
-        print("fwupd %s is installed and must be removed" % version.version)
+        print(f"fwupd {version.version} is installed and must be removed")
     return remove_packaged_version(pkg, cache)
 
 
@@ -278,9 +272,7 @@ def remove_packaged_version(pkg, cache):
 def install_builtin(directory, verbose, allow_reinstall, allow_older):
     cabs = []
     for root, dirs, files in os.walk(directory):
-        for f in files:
-            if f.endswith(".cab"):
-                cabs.append(os.path.join(root, f))
+        cabs.extend(os.path.join(root, f) for f in files if f.endswith(".cab"))
     # run command
     for cab in cabs:
         cmd = ["fwupdmgr", "install", cab]
@@ -295,9 +287,6 @@ def install_builtin(directory, verbose, allow_reinstall, allow_older):
 
 
 def run_installation(directory, verbose, allow_reinstall, allow_older, uninstall):
-    try_snap = False
-    try_flatpak = False
-
     # determine if a minimum version was specified
     minimum_path = os.path.join(directory, "minimum")
     minimum = None
@@ -309,14 +298,11 @@ def run_installation(directory, verbose, allow_reinstall, allow_older, uninstall
         install_builtin(directory, verbose, allow_reinstall, allow_older)
         return
 
-    # determine what self extracting binary has
-    if os.path.exists(os.path.join(directory, "fwupd.snap")) and os.path.exists(
-        os.path.join(directory, "fwupd.assert")
-    ):
-        try_snap = True
-    if os.path.exists(os.path.join(directory, "fwupd.flatpak")):
-        try_flatpak = True
-
+    try_snap = bool(
+        os.path.exists(os.path.join(directory, "fwupd.snap"))
+        and os.path.exists(os.path.join(directory, "fwupd.assert"))
+    )
+    try_flatpak = bool(os.path.exists(os.path.join(directory, "fwupd.flatpak")))
     if try_snap:
         try:
             install_snap(directory, verbose, allow_reinstall, allow_older, uninstall)
@@ -335,26 +321,22 @@ if __name__ == "__main__":
     if "extract" in args.command:
         if args.allow_reinstall:
             error(
-                "allow-reinstall argument doesn't make sense with command %s"
-                % args.command
+                f"allow-reinstall argument doesn't make sense with command {args.command}"
             )
         if args.allow_older:
-            error(
-                "allow-older argument doesn't make sense with command %s" % args.command
-            )
+            error(f"allow-older argument doesn't make sense with command {args.command}")
         if args.cleanup:
-            error("Cleanup argument doesn't make sense with command %s" % args.command)
+            error(f"Cleanup argument doesn't make sense with command {args.command}")
         if args.directory is None:
             error("No directory specified")
         if not os.path.exists(args.directory):
-            print("Creating %s" % args.directory)
+            print(f"Creating {args.directory}")
             os.makedirs(args.directory)
         unzip(args.directory)
     else:
         if args.directory:
             error(
-                "Directory argument %s doesn't make sense with command %s"
-                % (args.directory, args.command)
+                f"Directory argument {args.directory} doesn't make sense with command {args.command}"
             )
         if os.getuid() != 0:
             error("This tool must be run as root")

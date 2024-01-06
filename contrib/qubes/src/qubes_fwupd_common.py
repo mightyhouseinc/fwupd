@@ -87,7 +87,7 @@ class LooseVersion:
         return self.vstring
 
     def __repr__(self):
-        return "LooseVersion ('%s')" % str(self)
+        return f"LooseVersion ('{str(self)}')"
 
     def _cmp(self, other):
         if isinstance(other, str):
@@ -104,30 +104,20 @@ class LooseVersion:
 
     def __eq__(self, other):
         c = self._cmp(other)
-        if c is NotImplemented:
-            return c
-        return c == 0
+        return c if c is NotImplemented else c == 0
 
     def __lt__(self, other):
         c = self._cmp(other)
-        if c is NotImplemented:
-            return c
-        return c < 0
+        return c if c is NotImplemented else c < 0
 
     def __le__(self, other):
         c = self._cmp(other)
-        if c is NotImplemented:
-            return c
-        return c <= 0
+        return c if c is NotImplemented else c <= 0
 
     def __gt__(self, other):
         c = self._cmp(other)
-        if c is NotImplemented:
-            return c
-        return c > 0
+        return c if c is NotImplemented else c > 0
 
     def __ge__(self, other):
         c = self._cmp(other)
-        if c is NotImplemented:
-            return c
-        return c >= 0
+        return c if c is NotImplemented else c >= 0

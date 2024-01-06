@@ -47,6 +47,5 @@ if __name__ == "__main__":
             f"WARNING: indenting of {args.dst} disabled as python is too old",
             file=sys.stderr,
         )
-        pass
     with open(args.dst, "wb") as f:
         tree.write(f, encoding="UTF-8", xml_declaration=True)

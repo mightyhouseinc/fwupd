@@ -14,7 +14,7 @@ def _do_msgattrib(fn):
         "--no-wrap",
         "--sort-output",
         fn,
-        "--output-file=" + fn,
+        f"--output-file={fn}",
     ]
     ret = subprocess.run(argv)
     if ret.returncode != 0:

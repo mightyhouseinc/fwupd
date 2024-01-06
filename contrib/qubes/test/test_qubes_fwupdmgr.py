@@ -104,7 +104,7 @@ class TestQubesFwupdmgr(unittest.TestCase):
         self.q.metadata_file = CUSTOM_METADATA.replace(
             "https://fwupd.org/downloads", FWUPD_DOM0_METADATA_DIR
         )
-        self.q.metadata_file_jcat = self.q.metadata_file + ".jcat"
+        self.q.metadata_file_jcat = f"{self.q.metadata_file}.jcat"
         self.q._download_metadata(metadata_url=CUSTOM_METADATA)
         self.assertTrue(
             os.path.exists(self.q.metadata_file),
@@ -285,7 +285,7 @@ class TestQubesFwupdmgr(unittest.TestCase):
     def test_verify_dmi(self, output):
         self.q.dmi_version = "P.1.0"
         with tempfile.TemporaryDirectory() as tmpdir:
-            arch_name = tmpdir + "/firmware.cab"
+            arch_name = f"{tmpdir}/firmware.cab"
             subprocess.check_call(
                 ["gcab", "-c", arch_name, "firmware.metainfo.xml"], cwd="test/logs"
             )
@@ -299,7 +299,7 @@ class TestQubesFwupdmgr(unittest.TestCase):
         with self.assertRaises(ValueError) as wrong_vendor:
             self.q.dmi_version = "P.1.0"
             with tempfile.TemporaryDirectory() as tmpdir:
-                arch_name = tmpdir + "/firmware.cab"
+                arch_name = f"{tmpdir}/firmware.cab"
                 subprocess.check_call(
                     ["gcab", "-c", arch_name, "firmware.metainfo.xml"],
                     cwd="test/logs/metainfo_name",
@@ -315,7 +315,7 @@ class TestQubesFwupdmgr(unittest.TestCase):
         self.q.dmi_version = "P1.0"
         with self.assertRaises(ValueError) as downgrade:
             with tempfile.TemporaryDirectory() as tmpdir:
-                arch_name = tmpdir + "/firmware.cab"
+                arch_name = f"{tmpdir}/firmware.cab"
                 subprocess.check_call(
                     ["gcab", "-c", arch_name, "firmware.metainfo.xml"],
                     cwd="test/logs/metainfo_version",

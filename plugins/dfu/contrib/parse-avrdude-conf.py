@@ -21,14 +21,12 @@ def _find_part_by_id(parts, part_id):
 # finds a memory layout for a part, climbing up the tree to the parent if reqd.
 def _find_mem_layout(parts, part):
     if "memory-application" in part:
-        memory_flash = part["memory-application"]
-        if memory_flash:
+        if memory_flash := part["memory-application"]:
             return memory_flash
 
     # look at the parent
     if "parent" in part:
-        parent = _find_part_by_id(parts, part["parent"])
-        if parent:
+        if parent := _find_part_by_id(parts, part["parent"]):
             return _find_mem_layout(parts, parent)
         print("no parent ", part["parent"], "found for", part["id"])
     return None
@@ -42,8 +40,7 @@ def _parse_parts(fn_source):
     memory_id = None
     parts = []
 
-    for line in open(fn_source).readlines():
-
+    for line in open(fn_source):
         # try to clean up crazy syntax
         line = line.replace("\n", "")
         if line.endswith(";"):
@@ -89,7 +86,6 @@ def _parse_parts(fn_source):
             part[split[0].strip()] = split[1].strip().replace('"', "")
             continue
 
-        # level 8 of hell
         if lvl == 8:
             if memory_id:
                 split = line.split("=")
@@ -97,7 +93,6 @@ def _parse_parts(fn_source):
                     continue
                 memory = part[memory_id]
                 memory[split[0].strip()] = split[1].strip()
-            continue
     return parts
 
 
@@ -125,7 +120,7 @@ def _write_quirks(parts, fn_destination):
         if not mem_part:
             print("no memory layout for", part["desc"])
             continue
-        if not "size" in mem_part:
+        if "size" not in mem_part:
             print("no memory size for", part["desc"])
             continue
         if mem_part["size"].startswith("0x"):
@@ -135,26 +130,27 @@ def _write_quirks(parts, fn_destination):
 
         # output the line for the quirk
         chip_id = "0x" + part["signature"].replace("0x", "").replace(" ", "")
-        mem_layout = "@Flash/0x0/1*%.0iKg" % int(size / 1024)
-
         # merge duplicate quirks
         if chip_id in results:
             result = results[chip_id]
             result["desc"] = _get_longest_substring(result["desc"], part["desc"])
         else:
-            result = {}
-            result["desc"] = part["desc"]
-            result["size"] = size
-            result["mem_layout"] = mem_layout
+            mem_layout = "@Flash/0x0/1*%.0iKg" % (size // 1024)
+
+            result = {"desc": part["desc"], "size": size, "mem_layout": mem_layout}
             results[chip_id] = result
 
     for chip_id in results:
         result = results[chip_id]
-        outp.append(
-            "# " + result["desc"] + "	[USER]		USER=0x%x" % result["size"] + "\n"
+        outp.extend(
+            (
+                "# "
+                + result["desc"]
+                + "	[USER]		USER=0x%x" % result["size"]
+                + "\n",
+                f"{chip_id}=" + result["mem_layout"] + "\n\n",
+            )
         )
-        outp.append(chip_id + "=" + result["mem_layout"] + "\n\n")
-
     # write file
     print("writing", fn_destination)
     open(fn_destination, "w").writelines(outp)
@@ -162,7 +158,7 @@ def _write_quirks(parts, fn_destination):
 
 if __name__ == "__main__":
     if len(sys.argv) != 3:
-        print("USAGE: %s avrdude.conf tmp.quirk" % sys.argv[0])
+        print(f"USAGE: {sys.argv[0]} avrdude.conf tmp.quirk")
         sys.exit(1)
 
     all_parts = _parse_parts(sys.argv[1])

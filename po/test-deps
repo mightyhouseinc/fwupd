@@ -3,6 +3,7 @@
 
 """ Check dependencies needed for rasterization """
 
+
 import sys
 import os
 
@@ -51,8 +52,8 @@ for root, dirs, files in os.walk("po"):
         if not file.endswith(".po"):
             continue
         l = file.split(".po")
-        if len(l) > 1 and not l[0] in langs:
+        if len(l) > 1 and l[0] not in langs:
             err = 1
-            print("Error: missing translations for %s" % l[0])
+            print(f"Error: missing translations for {l[0]}")
 
 sys.exit(err)

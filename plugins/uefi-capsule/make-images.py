@@ -29,7 +29,7 @@ from gi.repository import Pango, PangoCairo
 
 
 def languages(podir: str):
-    for x in open(os.path.join(podir, "LINGUAS"), "r").readlines():
+    for x in open(os.path.join(podir, "LINGUAS"), "r"):
         yield x.strip()
     yield "en"
 
@@ -160,7 +160,7 @@ def main(args) -> int:
 
                 data: Dict[str, Any] = {}
                 fs.foreach(find_size, data)
-                if len(data) == 0:
+                if not data:
                     print("Missing sans fonts")
                     return 2
                 log = data["log"]

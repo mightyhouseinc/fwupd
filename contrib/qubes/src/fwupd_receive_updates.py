@@ -77,7 +77,7 @@ class FwupdReceiveUpdates:
         crc = 0xB704CE  # crc24_init
         for b in data:
             crc ^= b << 16
-            for i in range(8):
+            for _ in range(8):
                 crc <<= 1
                 if crc & 0x1000000:
                     crc ^= 0x1864CFB  # crc24_poly
@@ -99,7 +99,7 @@ class FwupdReceiveUpdates:
                 raise Exception("pgp: signature too big")
             lines = data.splitlines()
             # format described in RFC-4880 ch 6
-            if lines[0:2] != [b"-----BEGIN PGP SIGNATURE-----", b""]:
+            if lines[:2] != [b"-----BEGIN PGP SIGNATURE-----", b""]:
                 raise Exception("pgp: invalid header")
             if lines[-1] != b"-----END PGP SIGNATURE-----":
                 raise Exception("pgp: invalid footer")
@@ -118,7 +118,7 @@ class FwupdReceiveUpdates:
                 p = subprocess.Popen(["sigparse", tmp.name], stderr=subprocess.PIPE)
                 _, stderr = p.communicate()
                 if p.returncode != 0:
-                    raise Exception("pgp: invalid signature format: " + stderr.decode())
+                    raise Exception(f"pgp: invalid signature format: {stderr.decode()}")
         # reconstruct armored data to ensure its canonical form
         with open(signature_path, "wb") as sig:
             sig.write(b"-----BEGIN PGP SIGNATURE-----\n")
@@ -235,7 +235,7 @@ class FwupdReceiveUpdates:
         """
         metadata_name = os.path.basename(metadata_url)
         self.metadata_file = os.path.join(FWUPD_DOM0_METADATA_DIR, metadata_name)
-        self.metadata_file_jcat = self.metadata_file + ".jcat"
+        self.metadata_file_jcat = f"{self.metadata_file}.jcat"
         self.metadata_file_updatevm = os.path.join(FWUPD_VM_METADATA_DIR, metadata_name)
         create_dirs(FWUPD_DOM0_METADATA_DIR, FWUPD_DOM0_UNTRUSTED_DIR)
         with tempfile.TemporaryDirectory(dir=FWUPD_DOM0_UNTRUSTED_DIR) as tmpdir:
@@ -260,17 +260,15 @@ class FwupdReceiveUpdates:
                 updatevm,
                 "cat",
                 "--",
-                self.metadata_file_updatevm + ".asc",
+                f"{self.metadata_file_updatevm}.asc",
             ]
             untrusted_metadata_file = os.path.join(tmpdir, metadata_name)
 
-            with open(untrusted_metadata_file, "bx") as untrusted_file_1, open(
-                untrusted_metadata_file + ".asc", "bx"
-            ) as untrusted_file_2, subprocess.Popen(
-                cmd_copy_metadata_file, stdout=untrusted_file_1
-            ) as p, subprocess.Popen(
-                cmd_copy_metadata_file_signature, stdout=untrusted_file_2
-            ) as q:
+            with (open(untrusted_metadata_file, "bx") as untrusted_file_1, open(f"{untrusted_metadata_file}.asc", "bx") as untrusted_file_2, subprocess.Popen(
+                        cmd_copy_metadata_file, stdout=untrusted_file_1
+                    ) as p, subprocess.Popen(
+                        cmd_copy_metadata_file_signature, stdout=untrusted_file_2
+                    ) as q):
                 p.wait()
                 q.wait()
             if p.returncode != 0:
@@ -279,14 +277,14 @@ class FwupdReceiveUpdates:
                 raise Exception("qvm-run: Copying metadata signature failed!!")
 
             self._pgp_verification(
-                untrusted_metadata_file + ".asc", untrusted_metadata_file
+                f"{untrusted_metadata_file}.asc", untrusted_metadata_file
             )
             self._reconstruct_jcat(
-                untrusted_metadata_file + ".jcat", untrusted_metadata_file
+                f"{untrusted_metadata_file}.jcat", untrusted_metadata_file
             )
             # verified, move into trusted dir
             shutil.move(untrusted_metadata_file, self.metadata_file)
-            shutil.move(untrusted_metadata_file + ".jcat", self.metadata_file_jcat)
+            shutil.move(f"{untrusted_metadata_file}.jcat", self.metadata_file_jcat)
 
     def clean_cache(self):
         """Removes updates data"""

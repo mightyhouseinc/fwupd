@@ -19,7 +19,7 @@ def update_debian_control(target):
     control_out = os.path.join(target, "control")
 
     if not os.path.exists(control_in):
-        print("Missing file %s" % control_in)
+        print(f"Missing file {control_in}")
         sys.exit(1)
 
     with open(control_in, "r") as rfd:
@@ -51,7 +51,7 @@ def update_debian_copyright(directory):
     copyright_out = os.path.join(directory, "copyright")
 
     if not os.path.exists(copyright_in):
-        print("Missing file %s" % copyright_in)
+        print(f"Missing file {copyright_in}")
         sys.exit(1)
 
     # Assume all files are remaining LGPL-2.1+
@@ -66,9 +66,7 @@ def update_debian_copyright(directory):
                 with open(target, "r") as rfd:
                     # read about the first few lines of the file only
                     lines = rfd.readlines(220)
-            except UnicodeDecodeError:
-                continue
-            except FileNotFoundError:
+            except (UnicodeDecodeError, FileNotFoundError):
                 continue
             for line in lines:
                 if "Copyright (C) " in line:
@@ -76,7 +74,7 @@ def update_debian_copyright(directory):
                         1
                     ].strip()  # split out the copyright header
                     partition = parts.partition(" ")[2]  # remove the year string
-                    copyrights += ["%s" % partition]
+                    copyrights += [f"{partition}"]
     copyrights = "\n\t   ".join(sorted(set(copyrights)))
     with open(copyright_in, "r") as rfd:
         lines = rfd.readlines()

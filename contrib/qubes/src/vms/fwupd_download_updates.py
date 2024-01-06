@@ -23,10 +23,7 @@ METADATA_URL_JCAT = "https://fwupd.org/downloads/firmware.xml.gz.jcat"
 class DownloadData(FwupdVmCommon):
     def _download_metadata_file(self):
         """Download metadata file"""
-        if self.custom_url is None:
-            metadata_url = METADATA_URL
-        else:
-            metadata_url = self.custom_url
+        metadata_url = METADATA_URL if self.custom_url is None else self.custom_url
         cmd_metadata = ["curl", "-fL", "-o", self.metadata_file, "--", metadata_url]
         p = subprocess.Popen(cmd_metadata)
         p.wait()
@@ -39,10 +36,7 @@ class DownloadData(FwupdVmCommon):
 
     def _download_metadata_jcat(self):
         """Download metadata jcat signature"""
-        if self.custom_url is None:
-            metadata_url = METADATA_URL
-        else:
-            metadata_url = self.custom_url
+        metadata_url = METADATA_URL if self.custom_url is None else self.custom_url
         cmd_metadata = [
             "curl",
             "-fL",
@@ -63,15 +57,16 @@ class DownloadData(FwupdVmCommon):
         environ["LC_ALL"] = "C"
         cmd_info = ["jcat-tool", "info", f"{self.metadata_file}.jcat"]
         info_stdout = subprocess.check_output(cmd_info, env=environ).decode()
-        info_id_line = [line for line in info_stdout.splitlines() if "ID:" in line]
-        if info_id_line:
+        if info_id_line := [
+            line for line in info_stdout.splitlines() if "ID:" in line
+        ]:
             info_id = info_id_line[0].split(":", 1)[1].strip()
         else:
             info_id = None
         if info_id and info_id != os.path.basename(metadata_url):
             # fetch the file referenced in jcat, to workaround CDN being few
             # hours out of sync
-            self.custom_url = os.path.dirname(metadata_url) + "/" + info_id
+            self.custom_url = f"{os.path.dirname(metadata_url)}/{info_id}"
         cmd_export = [
             "jcat-tool",
             f"--prefix={FWUPD_VM_METADATA_DIR}/",

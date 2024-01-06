@@ -48,10 +48,14 @@ class FwupdHeads:
         """
         Device model for Heads update, currently supports ThinkPad only.
         """
-        for line in self.dom0_hwids_info.splitlines():
-            if line.startswith("Family: ThinkPad"):
-                return line.split(":", 1)[1].split(" ", 1)[1].lower()
-        return None
+        return next(
+            (
+                line.split(":", 1)[1].split(" ", 1)[1].lower()
+                for line in self.dom0_hwids_info.splitlines()
+                if line.startswith("Family: ThinkPad")
+            ),
+            None,
+        )
 
     def _parse_metadata(self, metadata_file):
         """
@@ -63,9 +67,7 @@ class FwupdHeads:
         elif metadata_ext == ".gz":
             cmd_metadata = ["zcat", metadata_file]
         else:
-            raise NotImplementedError(
-                "Unsupported metadata compression " + metadata_ext
-            )
+            raise NotImplementedError(f"Unsupported metadata compression {metadata_ext}")
         p = subprocess.Popen(cmd_metadata, stdout=subprocess.PIPE)
         self.metadata_info = p.communicate()[0].decode()
         if p.returncode != 0:
@@ -107,9 +109,8 @@ class FwupdHeads:
                     self.heads_update_version = release_ver
         if self.heads_update_url:
             return EXIT_CODES["SUCCESS"]
-        else:
-            print("Heads firmware is up to date.")
-            return EXIT_CODES["NOTHING_TO_DO"]
+        print("Heads firmware is up to date.")
+        return EXIT_CODES["NOTHING_TO_DO"]
 
     def _copy_heads_firmware(self, arch_path):
         """

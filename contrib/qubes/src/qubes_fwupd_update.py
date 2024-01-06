@@ -82,7 +82,7 @@ class FwupdUpdate:
             create_dirs(FWUPD_DOM0_DIR)
         cmd_metadata = [FWUPD_VM_DOWNLOAD, "--metadata"]
         if metadata_url:
-            cmd_metadata.append("--url=" + metadata_url)
+            cmd_metadata.append(f"--url={metadata_url}")
         try:
             run_in_tty(self.updatevm, cmd_metadata)
         except subprocess.CalledProcessError:

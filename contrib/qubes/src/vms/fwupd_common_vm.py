@@ -53,7 +53,7 @@ class FwupdVmCommon:
             c_sha = hashlib.sha256(f.read()).hexdigest()
         if c_sha != sha:
             self.clean_vm_cache()
-            raise ValueError("Computed checksum %s did NOT match %s. " % (c_sha, sha))
+            raise ValueError(f"Computed checksum {c_sha} did NOT match {sha}. ")
 
     def validate_vm_dirs(self):
         """Validates and creates directories"""
@@ -62,9 +62,7 @@ class FwupdVmCommon:
             self._create_dirs(FWUPD_VM_DIR)
         if os.path.exists(FWUPD_VM_METADATA_DIR):
             shutil.rmtree(FWUPD_VM_METADATA_DIR)
-            self._create_dirs(FWUPD_VM_METADATA_DIR)
-        else:
-            self._create_dirs(FWUPD_VM_METADATA_DIR)
+        self._create_dirs(FWUPD_VM_METADATA_DIR)
         if not os.path.exists(FWUPD_VM_UPDATES_DIR):
             self._create_dirs(FWUPD_VM_UPDATES_DIR)
         os.umask(self.old_umask)

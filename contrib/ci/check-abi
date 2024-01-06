@@ -30,10 +30,8 @@ def format_title(title):
 
 
 def rm_rf(path):
-    try:
+    with contextlib.suppress(FileNotFoundError):
         shutil.rmtree(path)
-    except FileNotFoundError:
-        pass
 
 
 def sanitize_path(name):
@@ -101,7 +99,7 @@ def build_install(revision):
 
 
 def compare(old_tree, new_tree):
-    print(format_title(f"# Comparing the two ABIs"), end="\n\n", flush=True)
+    print(format_title("# Comparing the two ABIs"), end="\n\n", flush=True)
 
     old_headers = os.path.join(old_tree, "usr", "include")
     old_lib = os.path.join(old_tree, "usr", "lib", "libfwupd.so")

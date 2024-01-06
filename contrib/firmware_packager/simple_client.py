@@ -28,23 +28,21 @@ class Progress:
 
     def status_changed(self, percent, status):
         """Indicate new status string or % complete to track"""
-        if self.status != status or self.percent != percent:
-            for i in range(0, self.erase):
-                sys.stdout.write("\b \b")
-            self.status = status
-            self.percent = percent
-            status_str = "["
-            for i in range(0, 50):
-                if i < percent / 2:
-                    status_str += "*"
-                else:
-                    status_str += " "
-            status_str += "] %d%% %s" % (percent, status)
-            self.erase = len(status_str)
-            sys.stdout.write(status_str)
-            sys.stdout.flush()
-            if "idle" in status:
-                sys.stdout.write("\n")
+        if self.status == status and self.percent == percent:
+            return
+        for _ in range(0, self.erase):
+            sys.stdout.write("\b \b")
+        self.status = status
+        self.percent = percent
+        status_str = "["
+        for i in range(0, 50):
+            status_str += "*" if i < percent / 2 else " "
+        status_str += "] %d%% %s" % (percent, status)
+        self.erase = len(status_str)
+        sys.stdout.write(status_str)
+        sys.stdout.flush()
+        if "idle" in status:
+            sys.stdout.write("\n")
 
 
 def parse_args():
@@ -76,8 +74,7 @@ def parse_args():
     parser.add_argument("cab", nargs="?", help="CAB file")
     parser.add_argument("deviceid", nargs="?", help="DeviceID to operate on(optional)")
     parser.add_argument("--setting", help="BIOS setting to operate on(optional)")
-    args = parser.parse_args()
-    return args
+    return parser.parse_args()
 
 
 def refresh(client):
@@ -129,10 +126,10 @@ def device_changed(client, device, progress):  # pylint: disable=unused-argument
 def modify_config(client, key, value):
     """Use fwupd client to modify daemon configuration value"""
     try:
-        print("setting configuration key %s to %s" % (key, value))
+        print(f"setting configuration key {key} to {value}")
         client.modify_config(key, value, None)
     except Exception as e:
-        print("%s" % str(e))
+        print(f"{str(e)}")
         sys.exit(1)
 
 
@@ -155,7 +152,7 @@ def install(client, cab, target, older, reinstall):
         client.install(target, cab, flags, None)
     except GLib.Error as glib_err:  # pylint: disable=catching-non-exception
         progress.status_changed(0, "idle")
-        print("%s" % glib_err)
+        print(f"{glib_err}")
         sys.exit(1)
     print("\n")
 
@@ -167,12 +164,9 @@ def get_daemon_property(key: str):
         iface = dbus.Interface(proxy, "org.freedesktop.DBus.Properties")
         val = iface.Get("org.freedesktop.fwupd", key)
         if isinstance(val, dbus.Boolean):
-            print(
-                "org.freedesktop.fwupd property %s, current value is %s"
-                % (key, bool(val))
-            )
+            print(f"org.freedesktop.fwupd property {key}, current value is {bool(val)}")
         else:
-            print("org.freedesktop.fwupd property %s, current value is %s" % (key, val))
+            print(f"org.freedesktop.fwupd property {key}, current value is {val}")
         return val
     except dbus.DBusException as e:
         print(e)
@@ -185,7 +179,7 @@ def check_exists(cab):
         print("Need to specify payload")
         sys.exit(1)
     if not os.path.isfile(cab):
-        print("%s doesn't exist or isn't a file" % cab)
+        print(f"{cab} doesn't exist or isn't a file")
         sys.exit(1)
 
 

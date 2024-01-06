@@ -52,23 +52,23 @@ if __name__ == "__main__":
             if kind.startswith("enable_flash_"):
                 kind = kind[13:]
             if kind not in chipsets:
-                print("ignoring {}...".format(kind))
+                print(f"ignoring {kind}...")
                 continue
 
-            devices["PCI\VEN_{}&DEV_{}".format(ven[2:], dev[2:].upper())] = kind
+            devices[f"PCI\VEN_{ven[2:]}&DEV_{dev[2:].upper()}"] = kind
 
         for device in devices:
             kind = devices[device]
-            out_f.write("[{}]\n".format(device))
+            out_f.write(f"[{device}]\n")
             out_f.write("Plugin = intel_spi\n")
-            out_f.write("IntelSpiKind = {}\n\n".format(kind))
+            out_f.write(f"IntelSpiKind = {kind}\n\n")
 
         for kind in sorted(chipsets):
             cs = chipsets[kind]
-            out_f.write("\n[INTEL_SPI_CHIPSET\\ID_{}]\n".format(kind.upper()))
+            out_f.write(f"\n[INTEL_SPI_CHIPSET\\ID_{kind.upper()}]\n")
             if cs.spibar:
                 out_f.write("IntelSpiBar = 0x{:x}\n".format(cs.spibar))
             if cs.bios_cntl:
                 out_f.write("IntelSpiBiosCntl = 0x{:X}\n".format(cs.bios_cntl))
             if cs.flags:
-                out_f.write("Flags = {}\n".format(cs.flags))
+                out_f.write(f"Flags = {cs.flags}\n")

@@ -26,7 +26,7 @@ def detect_profile():
         import distro
 
         target = distro.id()
-        if not target in get_possible_profiles():
+        if target not in get_possible_profiles():
             target = distro.like()
     except ModuleNotFoundError:
         target = ""
@@ -117,26 +117,21 @@ def parse_dependencies(OS, variant, add_control):
                 if not distro.findall("control"):
                     continue
                 for control_parent in distro.findall("control"):
-                    for obj in control_parent.findall("inclusive"):
-                        inclusive.append(obj.text)
-                    for obj in control_parent.findall("exclusive"):
-                        exclusive.append(obj.text)
+                    inclusive.extend(obj.text for obj in control_parent.findall("inclusive"))
+                    exclusive.extend(obj.text for obj in control_parent.findall("exclusive"))
                 if inclusive or exclusive:
                     inclusive = " ".join(inclusive).strip()
                     exclusive = " !".join(exclusive).strip()
                     if exclusive:
-                        exclusive = "!%s" % exclusive
-                    control = " [%s%s]" % (inclusive, exclusive)
+                        exclusive = f"!{exclusive}"
+                    control = f" [{inclusive}{exclusive}]"
             for package in distro.findall("package"):
                 if variant:
                     if "variant" not in package.attrib:
                         continue
                     if package.attrib["variant"] != variant:
                         continue
-                if package.text:
-                    dep = package.text
-                else:
-                    dep = child.attrib["id"]
+                dep = package.text if package.text else child.attrib["id"]
                 dep += control
                 if dep:
                     deps.append(dep)
@@ -145,7 +140,7 @@ def parse_dependencies(OS, variant, add_control):
 
 def _validate_deps(os, deps):
     validated = deps
-    if os == "debian" or os == "ubuntu":
+    if os in ["debian", "ubuntu"]:
         try:
             from apt import cache
 
@@ -169,7 +164,7 @@ def get_build_dependencies(os, variant):
 
 
 def _get_installer_cmd(os, yes):
-    if os == "debian" or os == "ubuntu":
+    if os in ["debian", "ubuntu"]:
         installer = ["apt", "install"]
     elif os == "fedora":
         installer = ["dnf", "install"]
@@ -245,13 +240,7 @@ if __name__ == "__main__":
         command = args.command
 
     # command to run
-    if command == "test-markdown":
-        test_markdown(args.debug)
-    elif command == "test-jinja2":
-        test_jinja2(args.debug)
-    elif command == "test-meson":
-        test_meson(args.debug)
-    elif command == "detect-profile":
+    if command == "detect-profile":
         print(detect_profile())
     elif command == "get-dependencies":
         dependencies = get_build_dependencies(args.os, args.variant)
@@ -262,3 +251,9 @@ if __name__ == "__main__":
         )
     elif command == "install-pip":
         install_packages(args.os, args.variant, args.yes, args.debug, ["python3-pip"])
+    elif command == "test-jinja2":
+        test_jinja2(args.debug)
+    elif command == "test-markdown":
+        test_markdown(args.debug)
+    elif command == "test-meson":
+        test_meson(args.debug)
